@@ -1,8 +1,9 @@
 <template>
   <div class="home">
-    <h1>Create Product</h1>
+    <h1 class="animate__animated animate__rubberBand animate__infinite animate__slower">Create Product</h1>
+    <img v-if="status" :src="`https://http.cat/${status}`" alt="" />
     <div v-for="error in errors" v-bind:key="error">
-      <li>{{ error }}</li>
+      {{ error }}
     </div>
     <div>
       Name:
@@ -23,13 +24,37 @@
 
     <br />
     <button v-on:click="createProduct()">Create</button>
-    <h1>Check Out These Killer Products</h1>
-    <div v-for="product in products" v-bind:key="product.id">
-      <h2>Name: {{ product.name }}</h2>
-      <img v-bind:src="product.image_url" v-bind:alt="product.title" />
-      <br />
-      <br />
-      <button v-on:click="showProduct(product)">Mo' Details</button>
+    <h1 class="animate__animated animate__jello animate__infinite animate__slower">Check Out These Killer Products</h1>
+
+    <div>
+      Search:
+      <input type="text" v-model="nameFilter" list="names" />
+    </div>
+    <datalist id="names">
+      <option v-for="product in products" v-bind:key="product.id">
+        {{ product.name }}
+      </option>
+    </datalist>
+    <br />
+    <button v-on:click="sortAttribute = 'name'">Sort by Name</button>
+    &nbsp;
+    <button v-on:click="sortAttribute = 'price'">Sort by Price</button>
+    <div
+      is="transition-group"
+      appear
+      enter-active-class="animate__animated animate__fadeIn"
+      leave-active-class="animate__animated animate__fadeOut"
+    >
+      <div
+        v-for="product in orderBy(filterBy(products, nameFilter, 'name'), sortAttribute, sortOrder)"
+        v-bind:key="product.id"
+      >
+        <h2>Name: {{ product.name }}</h2>
+        <img v-bind:src="product.image_url" v-bind:alt="product.title" />
+        <br />
+        <br />
+        <button v-on:click="showProduct(product)">Mo' Details</button>
+      </div>
     </div>
     <dialog id="product-details">
       <form method="dialog">
@@ -51,6 +76,7 @@
           Price:
           <input type="text" v-model="currentProduct.price" />
         </p>
+        <br />
         <button v-on:click="updateProduct(currentProduct)">Update</button>
         &nbsp;
         <button v-on:click="destroyProduct(currentProduct)">Destroy</button>
@@ -69,13 +95,20 @@ img {
 
 <script>
 import axios from "axios";
+import Vue2Filters from "vue2-filters";
+
 export default {
+  mixins: [Vue2Filters.mixin],
   data: function () {
     return {
       products: [],
       newProductParams: {},
       currentProduct: {},
       errors: [],
+      status: null,
+      sortAttribute: "name",
+      nameFilter: "",
+      sortOrder: 1,
     };
   },
   created: function () {
@@ -94,8 +127,10 @@ export default {
         .then((response) => {
           console.log(response.data);
           this.products.push(response.data);
+          window.alert("New product successfully created! Way to go champ!");
         })
         .catch((error) => {
+          this.status = error.response.status;
           this.errors = error.response.data.errors;
         });
     },
@@ -115,11 +150,14 @@ export default {
         });
     },
     destroyProduct: function (product) {
-      axios.delete(`http://localhost:3000/products/${product.id}`).then((response) => {
-        console.log("Successfully destroyed", response.data);
-        var index = this.products.indexOf(product);
-        this.products.splice(index, 1);
-      });
+      if (confirm("Are you sure you want to delete that?")) {
+        axios.delete(`http://localhost:3000/products/${product.id}`).then((response) => {
+          console.log("Successfully destroyed", response.data);
+          window.alert("Successfully destroyed. Nice.");
+          var index = this.products.indexOf(product);
+          this.products.splice(index, 1);
+        });
+      }
     },
   },
 };
